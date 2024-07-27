@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Button } from 'react-bootstrap';
 import { jsPDF } from 'jspdf';
 import './ChecklistForm.css';
+import Weather from './Weather'; // Asegúrate de tener la ruta correcta
 
-// Importar imágenes
 import KataleyaImg from '../Assets/Kataleya.jpg';
 import BenjaminImg from '../Assets/Benjamin.jpg';
 import FernandaImg from '../Assets/Fernanda.jpg';
@@ -13,6 +13,16 @@ import VladimirImg from '../Assets/Vladimir.jpg';
 import XimenaImg from '../Assets/ximena.jpg';
 import AndresImg from '../Assets/Andres.jpg';
 import EvelinImg from '../Assets/evelin.png';
+
+import ColacionImg from '../Assets/colacion.png';
+import EscuelaNuevaLuzImg from '../Assets/escuela-nueva-luz.jpg';
+import AlmuerzoImg from '../Assets/almuerzo.png';
+import CalendarioImg from '../Assets/calendario.png';
+import IrACasaImg from '../Assets/ir-a-casa.png';
+import RealizarActividadImg from '../Assets/realizar-actividad.png';
+import RecreoImg from '../Assets/recreo.png';
+import SaludoImg from '../Assets/saludo.png';
+import AseoImg from '../Assets/aseo.webp';
 
 const ChecklistForm = () => {
   const [formData, setFormData] = useState({
@@ -43,7 +53,6 @@ const ChecklistForm = () => {
     { name: 'Barbara', image: null, worked: false },
   ]);
 
-  // Mapear las imágenes importadas a los nombres
   const photos = {
     kataleya: KataleyaImg,
     benjamin: BenjaminImg,
@@ -54,114 +63,146 @@ const ChecklistForm = () => {
     ximena: XimenaImg,
   };
 
-  const handleChange = (event) => {
-    const { name, checked } = event.target;
-    setFormData({ ...formData, [name]: checked });
+  const checklistPhotos = {
+    colacion: ColacionImg,
+    escuelaNuevaLuz: EscuelaNuevaLuzImg,
+    almuerzo: AlmuerzoImg,
+    diaSemana: CalendarioImg,
+    irACasa: IrACasaImg,
+    realizarActividad: RealizarActividadImg,
+    recreo: RecreoImg,
+    saludo: SaludoImg,
+    aseo: AseoImg,
   };
 
-  const handleAttendanceChange = (event) => {
-    const { name, checked } = event.target;
-    setAttendance({ ...attendance, [name]: checked });
+  const formatLabel = (str) => {
+    switch (str) {
+      case 'colacion':
+        return 'Colacion';
+      case 'escuelaNuevaLuz':
+        return 'Escuela Nueva Luz';
+      case 'saludo':
+        return 'Saludo';
+      case 'diaSemana':
+        return 'Día Semana';
+      case 'realizarActividad':
+        return 'Realizar Actividad';
+      case 'recreo':
+        return 'Recreo';
+      case 'almuerzo':
+        return 'Almuerzo';
+      case 'aseo':
+        return 'Aseo';
+      case 'irACasa':
+        return 'Ir A Casa';
+      default:
+        return str.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    }
   };
 
-  const handleProfessionalChange = (index) => {
-    const updatedProfessionalData = [...professionalData];
-    updatedProfessionalData[index].worked = !updatedProfessionalData[index].worked;
-    setProfessionalData(updatedProfessionalData);
-  };
-
-  const getCurrentDateAndDay = () => {
+  const getCurrentDateAndTime = () => {
     const date = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const formattedDate = date.toLocaleDateString('es-ES', options);
-    return formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+    }).replace(/^\w/, c => c.toUpperCase());
   };
+
+  const createPdf = (title, data, formatItem, imageMap) => {
+    const doc = new jsPDF();
+    const dateAndTime = getCurrentDateAndTime();
+    doc.text(`Fecha y hora: ${dateAndTime}`, 10, 10);
+    doc.text(title, 10, 20);
+
+    let yOffset = 30;
+    const pageBreak = (key) => key === 'almuerzo' || key === 'aseo';
+
+    data.forEach(item => {
+        if (imageMap && imageMap[item.key]) {
+            if (pageBreak(item.key) && yOffset > 250) {
+                doc.addPage(); // Agrega una nueva página si el offset supera el límite
+                yOffset = 10; // Reinicia el offset para la nueva página
+            }
+            doc.addImage(imageMap[item.key], 'JPEG', 10, yOffset, 30, 30);
+            yOffset += 35;
+        }
+        formatItem(item, doc, yOffset);
+        yOffset += 10;
+        
+        if (pageBreak(item.key) && yOffset > 250) {
+            doc.addPage(); // Agrega una nueva página si el offset supera el límite
+            yOffset = 10; // Reinicia el offset para la nueva página
+        }
+    });
+
+    doc.save(`${title.replace(/\s+/g, '_').toLowerCase()}.pdf`);
+};
+
 
   const handleExportChecklistPdf = () => {
-    const doc = new jsPDF();
-    const entries = Object.entries(formData);
-    const text = entries.map(([key, value]) => `${key}: ${value ? 'Sí' : 'No'}`).join('\n');
-    const dateAndDay = getCurrentDateAndDay();
-    doc.text(`Fecha: ${dateAndDay}`, 10, 10);
-    doc.text('Checklist Diario:', 10, 20);
-    doc.text(text, 10, 30);
-    doc.save('checklist.pdf');
+    const entries = Object.entries(formData).map(([key, value]) => ({ key, value }));
+    createPdf('Checklist Diario', entries, (item, doc, yOffset) => {
+      doc.text(`${formatLabel(item.key)}: ${item.value ? 'Sí' : 'No'}`, 50, yOffset);
+    }, checklistPhotos);
   };
 
   const handleExportAttendancePdf = () => {
-    const doc = new jsPDF();
-    const dateAndDay = getCurrentDateAndDay();
-    doc.text(`Fecha: ${dateAndDay}`, 10, 10);
-    doc.text('Asistencia:', 10, 20);
-
-    const attendanceEntries = Object.entries(attendance);
-    let yOffset = 30;
-    attendanceEntries.forEach(([key, value]) => {
-      const image = photos[key];
-      if (image) {
-        doc.addImage(image, 'JPEG', 10, yOffset, 30, 30);
-      }
-      doc.text(`${key}: ${value ? 'Presente' : 'Ausente'}`, 50, yOffset + 10);
-      yOffset += 40;
-    });
-
-    doc.save('asistencia.pdf');
+    const entries = Object.entries(attendance).map(([key, value]) => ({ key, value }));
+    createPdf('Asistencia', entries, (item, doc, yOffset) => {
+      doc.text(`${formatLabel(item.key)}: ${item.value ? 'Presente' : 'Ausente'}`, 50, yOffset + 10);
+    }, photos);
   };
 
   const handleExportProfessionalsPdf = () => {
-    const doc = new jsPDF();
-    const dateAndDay = getCurrentDateAndDay();
-    doc.text(`Fecha: ${dateAndDay}`, 10, 10);
-    doc.text('Profesionales con los que se trabajó hoy:', 10, 20);
-
-    let yOffset = 30;
-    professionalData.forEach(({ name, image, worked }, index) => {
-      if (image) {
-        doc.addImage(image, 'JPEG', 10, yOffset, 30, 30);
-      }
-      doc.text(name, 50, yOffset + 10);
-      doc.text(`Trabajó: ${worked ? 'Sí' : 'No'}`, 50, yOffset + 20);
-      yOffset += 40;
-    });
-
-    doc.save('profesionales.pdf');
+    createPdf('Profesionales con los que se trabajó hoy:', professionalData, (item, doc, yOffset) => {
+      doc.text(item.name, 50, yOffset + 10);
+      doc.text(`Trabajó: ${item.worked ? 'Sí' : 'No'}`, 50, yOffset + 20);
+    }, photos);
   };
 
   return (
     <div className="checklist-container">
-      <div className="date-display">{getCurrentDateAndDay()}</div>
+      <div className="date-display">{getCurrentDateAndTime()}</div>
+      <Weather apiKey="d76ef65d65b5b2b6aa1247136644bef3" />
       <Form className="p-3">
         <h2>Checklist Diario</h2>
-        {/* Checklist Form Groups */}
         {Object.keys(formData).map((item) => (
           <Form.Group key={item} controlId={`form${item}`}>
             <Form.Check
               type="checkbox"
-              label={item.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+              label={
+                <div>
+                  <img src={checklistPhotos[item]} alt={item} className="photo" />
+                  {formatLabel(item)}
+                </div>
+              }
               name={item}
               checked={formData[item]}
-              onChange={handleChange}
+              onChange={({ target: { name, checked } }) => setFormData({ ...formData, [name]: checked })}
             />
           </Form.Group>
         ))}
-
         <Button variant="primary" onClick={handleExportChecklistPdf} className="mr-2">
           Exportar Checklist a PDF
         </Button>
-
+        <br></br>
         <h2 className="mt-4">Asistencia</h2>
         {Object.keys(attendance).map((person) => (
           <Form.Group key={person} controlId={`form${person}`}>
             <Form.Check
               type="checkbox"
-              label={<div><img src={photos[person]} alt={person} className="photo" /> {person.replace(/^\w/, c => c.toUpperCase())}</div>}
+              label={<div><img src={photos[person]} alt={person} className="photo" /> {formatLabel(person)}</div>}
               name={person}
               checked={attendance[person]}
-              onChange={handleAttendanceChange}
+              onChange={({ target: { name, checked } }) => setAttendance({ ...attendance, [name]: checked })}
             />
           </Form.Group>
         ))}
-
         <Button variant="primary" onClick={handleExportAttendancePdf}>
           Exportar Asistencia a PDF
         </Button>
@@ -174,7 +215,11 @@ const ChecklistForm = () => {
               label={<div><img src={image} alt={name} className="photo" /> {name}</div>}
               name={name}
               checked={professionalData[index].worked}
-              onChange={() => handleProfessionalChange(index)}
+              onChange={() => {
+                const updatedData = [...professionalData];
+                updatedData[index].worked = !updatedData[index].worked;
+                setProfessionalData(updatedData);
+              }}
             />
           </Form.Group>
         ))}
