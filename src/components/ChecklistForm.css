@@ -1,0 +1,52 @@
+/* ChecklistForm.css */
+
+/* Estilos generales */
+.checklist-container {
+  padding: 15px;
+  max-width: 600px;
+  margin: auto;
+}
+
+.date-display {
+  margin-bottom: 20px;
+}
+
+/* Ajustes para formularios y botones */
+h2 {
+  font-size: 1.5em;
+  margin-bottom: 15px;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.form-check img.photo {
+  width: 100px;
+  height: 100px;
+  margin-right: 10px;
+  border-radius: 50%;
+}
+
+button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+@media (max-width: 576px) {
+  h2 {
+    font-size: 1.2em;
+  }
+  
+  .form-check {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .form-check img.photo {
+    width: 100px;
+    height: 100px;
+  }
+}
